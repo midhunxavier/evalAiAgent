@@ -28,7 +28,7 @@ export default function Home() {
     logs: []
   })
 
-  const [showAgent, setShowAgent] = useState<'none' | 'simple' | 'planning'>('none')
+  const [showAgent, setShowAgent] = useState<'none' | 'planning'>('none')
 
   const addLog = useCallback((message: string) => {
     setSimulationState(prevState => ({
@@ -176,12 +176,6 @@ export default function Home() {
         Manual Control
       </button>
       <button 
-        className={`${styles.agentSelectorButton} ${showAgent === 'simple' ? styles.active : ''}`}
-        onClick={() => setShowAgent('simple')}
-      >
-        Simple Agent
-      </button>
-      <button 
         className={`${styles.agentSelectorButton} ${showAgent === 'planning' ? styles.active : ''}`}
         onClick={() => setShowAgent('planning')}
       >
@@ -193,8 +187,24 @@ export default function Home() {
   return (
     <main className={styles.main}>
       <h1 className={styles.title}>
-        Factory Distributing Station Simulation
+        AI Agent for  Distributing Station 
       </h1>
+      
+      <div className={styles.description}>
+        <p>
+          This simulation represents a factory distributing station with a robotic arm and magazine storage system.
+          The station transfers workpieces from a magazine to a delivery position through a series of automated steps.
+          The arm can move between left (magazine) and right (delivery) positions, pick up and place workpieces.
+        </p>
+        <p>
+          Use the Planning Agent to control the system with natural language commands or
+          manually control each operation with the control panel.
+        </p>
+      </div>
+      
+      <div className={styles.navigation}>
+        <a href="/evaluation" className={styles.evalLink}>View Agent Evaluation Dashboard</a>
+      </div>
       
       {renderAgentSelector()}
       
@@ -205,9 +215,7 @@ export default function Home() {
         
         <div className={styles.agentContainer}>
           <div className={styles.controlsContainer}>
-            {showAgent === 'simple' ? (
-              <SimpleAgentChat executeSkill={executeSkill} />
-            ) : showAgent === 'planning' ? (
+            {showAgent === 'planning' ? (
               <PlanningAgentChat executeSkill={executeSkill} />
             ) : (
               <ControlPanel 

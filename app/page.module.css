@@ -216,4 +216,49 @@
   .controlsContainer > *:last-child {
     flex: 1; /* Simulation log takes 1/4 of the space */
   }
+}
+
+.navigation {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.evalLink {
+  display: inline-block;
+  padding: 8px 16px;
+  background-color: #1e88e5;
+  color: white;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.evalLink:hover {
+  background-color: #1565c0;
+}
+
+.description {
+  max-width: 800px;
+  margin: 0 auto 2rem;
+  padding: 1rem 1.5rem;
+  background-color: #f5f9ff;
+  border-radius: 8px;
+  border-left: 4px solid #1976d2;
+  color: #333;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.description p {
+  margin: 0.75rem 0;
+}
+
+.description p:first-child {
+  margin-top: 0;
+}
+
+.description p:last-child {
+  margin-bottom: 0;
 } 

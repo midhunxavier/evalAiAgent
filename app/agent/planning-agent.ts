@@ -21,12 +21,22 @@ const planningAgentOutputSchema = z.object({
 
 type PlanningAgentOutput = z.infer<typeof planningAgentOutputSchema>;
 
+// Available GPT models
+export const AVAILABLE_MODELS = {
+  "gpt-4o-mini": "GPT-4o Mini",
+  "gpt-3.5-turbo": "GPT-3.5 Turbo",
+  "gpt-4": "GPT-4 Turbo"
+};
+
+export type ModelName = keyof typeof AVAILABLE_MODELS;
+
 /**
  * Creates a planning agent that generates and executes a sequence of skills
  * @param simulationTools The simulation tools to use
+ * @param modelName The model to use
  * @returns A function that takes a query and returns a result
  */
-export function createPlanningAgent(simulationTools: SimulationToolSet) {
+export function createPlanningAgent(simulationTools: SimulationToolSet, modelName: ModelName = "gpt-4o-mini") {
   // Create the prompt template
   const promptTemplate = ChatPromptTemplate.fromTemplate(`
 You are controlling a factory distributing station with a ROTATING ARM and a STACKED MAGAZINE.
@@ -58,7 +68,7 @@ Make sure your plan follows the operating rules and accounts for the current sta
 
   // Create the model with structured output
   const model = new ChatOpenAI({
-    modelName: "gpt-4o-mini",
+    modelName: modelName,
     temperature: 0,
     openAIApiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY
   }).withStructuredOutput(planningAgentOutputSchema);
@@ -71,6 +81,7 @@ Make sure your plan follows the operating rules and accounts for the current sta
     try {
       console.log("Planning Agent: Processing query:", query);
       console.log("Planning Agent: Current system state:", systemState);
+      console.log("Planning Agent: Using model:", modelName);
       
       // Get the plan to execute
       const output = await chain.invoke({ query, systemState });

@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import styles from './SimpleAgentChat.module.css'
+import { AVAILABLE_MODELS, type ModelName } from '../agent/planning-agent';
 
 interface Message {
   content: string;
@@ -19,12 +20,19 @@ interface FeedbackStats {
   thumbsDown: number;
 }
 
+interface PlanResult {
+  plan: string[];
+  explanation: string;
+  modelName: ModelName;
+  userQuery: string;
+}
+
 const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
   executeSkill
 }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
-      content: 'I\'m your planning factory assistant. Tell me what you want to do and I\'ll create and execute a plan for you.',
+      content: 'Welcome to the Factory Distributing Station Assistant. I can help you control the robotic arm and magazine system using natural language commands. Try asking me to "move a workpiece from the magazine to the right position" or "load the magazine and transfer a workpiece".',
       type: 'agent',
       id: '1',
       feedback: null
@@ -36,6 +44,8 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
     thumbsUp: 0,
     thumbsDown: 0
   });
+  const [selectedModel, setSelectedModel] = useState<ModelName>('gpt-4o-mini');
+  const [lastPlanResult, setLastPlanResult] = useState<PlanResult | null>(null);
 
   const generateId = () => {
     return Math.random().toString(36).substring(2, 11);
@@ -52,7 +62,8 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
     return newMessage.id;
   };
 
-  const handleFeedback = (messageId: string, feedback: 'thumbsUp' | 'thumbsDown') => {
+  const handleFeedback = async (messageId: string, feedback: 'thumbsUp' | 'thumbsDown') => {
+    // Update UI first
     setMessages(prev => prev.map(message => {
       if (message.id === messageId) {
         // If the same feedback is clicked again, toggle it off
@@ -76,8 +87,49 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
       return message;
     }));
     
-    // Here you would typically send the feedback to your backend
-    console.log(`Feedback for message ${messageId}: ${feedback}`);
+    // Only save feedback if we have a plan result and it's a positive or negative feedback
+    if (lastPlanResult && feedback) {
+      try {
+        const isCorrect = feedback === 'thumbsUp';
+        console.log("Saving feedback to database:", {
+          modelName: lastPlanResult.modelName,
+          userQuery: lastPlanResult.userQuery,
+          actions: lastPlanResult.plan,
+          isCorrect: isCorrect
+        });
+        
+        // Call our API endpoint for saving feedback
+        const response = await fetch('/api/planning-agent', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            saveFeedback: true,
+            isCorrect,
+            modelName: lastPlanResult.modelName,
+            query: lastPlanResult.userQuery,
+            plan: lastPlanResult.plan,
+            explanation: lastPlanResult.explanation
+          }),
+        });
+        
+        const responseData = await response.json();
+        console.log("Feedback save response:", responseData);
+        
+        if (!response.ok) {
+          console.error('Failed to save feedback', responseData);
+          addMessage(`Failed to save feedback. Please try again.`, 'result');
+        } else {
+          // Success message with storage source
+          const source = responseData.source === 'dynamodb' ? 'DynamoDB database' : 'in-memory store';
+          addMessage(`✅ Feedback saved to ${source}. Thank you for your input!`, 'result');
+        }
+      } catch (error) {
+        console.error('Error saving feedback:', error);
+        addMessage(`Error saving feedback: ${error}`, 'result');
+      }
+    }
   };
 
   const executeSkillWithDelay = async (skill: string): Promise<string> => {
@@ -102,6 +154,9 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
     e.preventDefault();
     if (!input.trim() || isProcessing) return;
 
+    // Reset last plan result
+    setLastPlanResult(null);
+    
     // Add user message
     addMessage(input, 'user');
     setInput('');
@@ -109,7 +164,7 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
     
     try {
       // Add thinking message
-      const thinkingId = addMessage('Thinking... Planning the skills to execute.', 'agent');
+      const thinkingId = addMessage(`Thinking... Planning the skills to execute using ${AVAILABLE_MODELS[selectedModel]}.`, 'agent');
       
       // Call the planning agent API
       const response = await fetch('/api/planning-agent', {
@@ -118,7 +173,8 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ 
-          query: input 
+          query: input,
+          modelName: selectedModel
         }),
       });
       
@@ -133,6 +189,14 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
       }
       
       if (result.success) {
+        // Save the plan result for feedback
+        setLastPlanResult({
+          plan: result.plan,
+          explanation: result.explanation,
+          modelName: result.modelName,
+          userQuery: input
+        });
+        
         // Show the explanation
         const explanationId = addMessage(`PLAN: ${result.explanation}`, 'agent');
         
@@ -181,6 +245,21 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
         </div>
       </div>
       
+      <div className={styles.modelSelector}>
+        <label htmlFor="model-select">Model:</label>
+        <select 
+          id="model-select" 
+          value={selectedModel} 
+          onChange={(e) => setSelectedModel(e.target.value as ModelName)}
+          disabled={isProcessing}
+          className={styles.modelSelect}
+        >
+          {Object.entries(AVAILABLE_MODELS).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
+      </div>
+      
       <div className={styles.messagesContainer}>
         {messages.map(message => (
           <div key={message.id} className={styles.messageWithFeedback}>
@@ -188,8 +267,8 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
               {message.content}
             </div>
             
-            {/* Only show feedback options for agent messages */}
-            {message.type === 'agent' && (
+            {/* Only show feedback options for agent messages after plan execution */}
+            {message.type === 'agent' && message.content.startsWith('PLAN:') && lastPlanResult && (
               <div className={styles.feedbackContainer}>
                 <span className={styles.feedbackText}>Was this helpful?</span>
                 <button 
