@@ -1,0 +1,219 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: #1976d2;
+  font-size: 2rem;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.simulationContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.simulationSection {
+  width: 100%;
+}
+
+@media (min-width: 1024px) {
+  .simulationContainer {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .simulationSection {
+    width: 100%;
+    position: relative;
+    top: 0;
+  }
+  
+  .agentContainer {
+    width: 100%;
+  }
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+.toggleButton {
+  background-color: #2196f3;
+  color: rgb(54, 151, 42);
+  border: none;
+  border-radius: 24px;
+  padding: 0.8rem 1.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.toggleButton:hover {
+  background-color: #1976d2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.toggleButton:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.controlsContainer {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  flex: 1;
+  width: 100%;
+  max-height: none;
+  overflow-y: visible;
+}
+
+.agentContainer {
+  flex: 1;
+  width: 100%;
+  animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.agentTypeBadge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 8px;
+  text-transform: uppercase;
+}
+
+.simpleAgentBadge {
+  background-color: #e3f2fd;
+  color: #1565c0;
+}
+
+.planningAgentBadge {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+}
+
+.agentSelector {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.agentSelectorButton {
+  padding: 0.6rem 1.2rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.agentSelectorButton:hover {
+  background-color: #f5f5f5;
+}
+
+.agentSelectorButton.active {
+  border-color: #2196f3;
+  color: #2196f3;
+  background-color: #e3f2fd;
+}
+
+.syncButton {
+  background-color: var(--secondary-color, #3498db);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+}
+
+.syncButton:hover {
+  background-color: var(--secondary-color-hover, #2980b9);
+}
+
+.syncButton:disabled {
+  background-color: #95a5a6;
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.syncButton:disabled::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+}
+
+.syncStatus {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background-color: #e8f4fd;
+  border: 1px solid #3498db;
+  border-radius: 0.5rem;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.syncStatus h3 {
+  margin-top: 0;
+  color: #2980b9;
+}
+
+.syncStatus p {
+  margin: 0.5rem 0;
+}
+
+.syncStatus p:last-child {
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .controlsContainer {
+    flex-direction: column;
+  }
+}
+
+/* Adjust width ratio between agent chat and simulation log */
+@media (min-width: 900px) {
+  .controlsContainer > *:first-child {
+    flex: 3; /* Agent chat or control panel takes 3/4 of the space */
+  }
+  
+  .controlsContainer > *:last-child {
+    flex: 1; /* Simulation log takes 1/4 of the space */
+  }
+} 

@@ -1,0 +1,263 @@
+.simulationContainer {
+  display: flex;
+  flex-direction: column;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  border: 1px solid #eaeaea;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.statusDisplay {
+  background-color: #f5f5f5;
+  padding: 0.8rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #eaeaea;
+}
+
+.statusLabel {
+  font-weight: 500;
+  color: #616161;
+  font-size: 0.9rem;
+}
+
+.statusValue {
+  color: #1976d2;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.simulationArea {
+  display: flex;
+  padding: 1.5rem;
+  justify-content: space-between;
+  position: relative;
+  min-height: 220px;
+}
+
+.leftSection, .centerSection, .rightSection {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.armSection {
+  position: absolute;
+  left: 53%;
+  transform: translateX(-50%);
+  bottom: 20px;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+}
+
+.magazine {
+  position: relative;
+  width: 60px;
+  height: 120px;
+  background-color: #d1d1d1;
+  border: 2px solid #9e9e9e;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.magazineStack {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+}
+
+.pusherContainer {
+  position: relative;
+  width: 80px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.pusher {
+  position: relative;
+  display: flex;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+.pusherExtended {
+  transform: translateX(30px);
+}
+
+.pusherBody {
+  width: 30px;
+  height: 20px;
+  background-color: #9e9e9e;
+  border-radius: 2px;
+}
+
+.pusherRod {
+  width: 40px;
+  height: 6px;
+  background-color: #757575;
+}
+
+.pusherHead {
+  width: 15px;
+  height: 15px;
+  background-color: #616161;
+  border-radius: 2px;
+}
+
+.leftConveyor, .rightConveyor {
+  width: 100px;
+  height: 20px;
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.leftConveyor {
+  margin-right: 100px;
+}
+
+.rightConveyor {
+  margin-left: 100px;
+  margin-right: 40px;
+}
+
+.conveyorBelt {
+  width: 100%;
+  height: 100%;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.conveyorLines {
+  display: flex;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.conveyorLine {
+  width: 2px;
+  height: 100%;
+  background-color: #9e9e9e;
+}
+
+.rotatingArm {
+  position: relative;
+  margin-left: 120px;
+  width: 120px;
+  height: 120px;
+  z-index: 10;
+}
+
+.armBase {
+  width: 30px;
+  height: 30px;
+  background-color: #9e9e9e;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.arm {
+  width: 12px;
+  height: 80px;
+  background-color: #757575;
+  position: absolute;
+  bottom: 25px;
+  left: 50%;
+  transform-origin: bottom center;
+  transition: transform 0.5s ease;
+}
+
+.arm_left .arm {
+  transform: translateX(-50%) rotate(-45deg);
+}
+
+.arm_right .arm {
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.workpieceOnArm {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.armAnimating .arm {
+  transition: transform 0.3s ease-in-out;
+}
+
+.workpiece {
+  width: 24px;
+  height: 24px;
+  background-color: #ff9800;
+  border-radius: 4px;
+  border: 2px solid #f57c00;
+}
+
+.pushedWorkpiece {
+  position: absolute;
+  top: -10px;
+  left: 20px;
+}
+
+.placedWorkpiece {
+  position: absolute;
+  top: -10px;
+  left: 30px;
+  transition: opacity 0.5s ease;
+}
+
+.moduleLabel {
+  position: absolute;
+  top: -25px;
+  font-size: 0.75rem;
+  color: #616161;
+  white-space: nowrap;
+}
+
+.statusIndicators {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0.5rem 1rem;
+  margin-top: 1rem;
+}
+
+.indicator {
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  background-color: #f5f5f5;
+  color: #616161;
+  border: 1px solid #e0e0e0;
+}
+
+.indicator.active {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  border-color: #2196f3;
+} 
