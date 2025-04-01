@@ -292,4 +292,10 @@
 .modelSelect:disabled {
   background-color: #f0f0f0;
   cursor: not-allowed;
-} 
+}
+
+.messageActions button:hover {
+  opacity: 0.8;
+}
+
+/* Model selector */ 

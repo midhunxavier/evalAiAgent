@@ -168,6 +168,40 @@
   z-index: 10;
 }
 
+/* Rotating Arm 2 specific styles */
+.rotatingArm2 {
+  margin-top: 20px;
+  margin-left: 180px;
+  z-index: 9;
+}
+
+/* Arm 2 position classes */
+.arm2_left .arm {
+  transform: translateX(-50%) rotate(-45deg);
+}
+
+.arm2_right .arm {
+  transform: translateX(-50%) rotate(45deg);
+}
+
+/* Pusher 2 specific styles */
+.pusher2 {
+  margin-top: 10px;
+  background-color: #b0bec5;
+}
+
+.pusher2 .pusherBody {
+  background-color: #78909c;
+}
+
+.pusher2 .pusherRod {
+  background-color: #546e7a;
+}
+
+.pusher2 .pusherHead {
+  background-color: #455a64;
+}
+
 .armBase {
   width: 30px;
   height: 30px;

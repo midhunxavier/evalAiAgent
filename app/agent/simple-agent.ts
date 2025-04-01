@@ -74,11 +74,11 @@ You MUST respond with a JSON object containing both a "skill" (one of the six sk
       
       // Map the skill name to the corresponding tool
       const skillMap: Record<string, keyof SimulationToolSet> = {
-        "move_to_left_skill": "moveToLeftSkill",
-        "move_to_right_skill": "moveToRightSkill",
-        "pick_workpiece_skill": "pickWorkpieceSkill",
-        "place_workpiece_skill": "placeWorkpieceSkill",
-        "push_workpiece_skill": "pushWorkpieceSkill",
+        "move_to_left_skill": "arm1MoveToLeftSkill",
+        "move_to_right_skill": "arm1MoveToRightSkill",
+        "pick_workpiece_skill": "arm1PickWorkpieceSkill",
+        "place_workpiece_skill": "arm1PlaceWorkpieceSkill",
+        "push_workpiece_skill": "pusher1PushSlowWorkpieceSkill",
         "load_magazine_skill": "loadMagazineSkill"
       };
       

@@ -45,23 +45,39 @@ try {
 // The schema for the planning agent's output
 const planningAgentOutputSchema = z.object({
   plan: z.array(z.enum([
-    "move_to_left_skill",
-    "move_to_right_skill",
-    "pick_workpiece_skill",
-    "place_workpiece_skill",
-    "push_workpiece_skill",
+    // Arm 1 skills
+    "arm1_move_to_left_skill",
+    "arm1_move_to_right_skill",
+    "arm1_pick_workpiece_skill",
+    "arm1_place_workpiece_skill",
+    // Arm 2 skills
+    "arm2_move_to_left_skill",
+    "arm2_move_to_right_skill",
+    "arm2_pick_workpiece_skill",
+    "arm2_place_workpiece_skill",
+    // Pusher skills
+    "pusher1_push_slow_workpiece_skill",
+    "pusher2_push_fast_workpiece_skill",
+    // Common skill
     "load_magazine_skill"
   ])).describe("The sequence of skills to execute"),
-  explanation: z.string().describe("A brief explanation of why this plan was chosen")
+  explanation: z.string().describe("A brief explanation of why this plan was chosen"),
+  totalEnergy: z.number().describe("The total energy cost of the plan"),
+  totalTime: z.number().describe("The total time cost of the plan"),
+  totalWear: z.number().describe("The total wear cost of the plan")
 });
 
 // Format system state as a string
 function formatSystemState(state: SimulationStateType): string {
   return `
-Rotating Arm Position: ${state.rotatingArmPosition}
-Holding Workpiece: ${state.isHoldingWorkpiece ? 'Yes' : 'No'}
+Rotating Arm 1 Position: ${state.rotatingArmPosition}
+Arm 1 Holding Workpiece: ${state.isHoldingWorkpiece ? 'Yes' : 'No'}
+Rotating Arm 2 Position: ${state.rotatingArm2Position}
+Arm 2 Holding Workpiece: ${state.isArm2HoldingWorkpiece ? 'Yes' : 'No'}
 Magazine Workpiece Count: ${state.magazineWorkpieceCount}
 Workpiece Pushed: ${state.workpiecePushed ? 'Yes' : 'No'}
+Pusher 1 Active: ${state.pusher1Active ? 'Yes' : 'No'}
+Pusher 2 Active: ${state.pusher2Active ? 'Yes' : 'No'}
 Status: ${state.status}
   `.trim();
 }
@@ -251,58 +267,214 @@ export async function POST(request: NextRequest) {
     }
     
     try {
-      // Get the current state of the system
-      const currentSystemState = formatSystemState(simulationState);
+      // Use the system state provided by the client if available, otherwise use the shared object
+      let currentSystemState;
+      if (data.systemState) {
+        currentSystemState = data.systemState;
+        console.log('[API Route] Using system state from client:', currentSystemState);
+      } else {
+        currentSystemState = formatSystemState(simulationState);
+        console.log('[API Route] Using default system state:', currentSystemState);
+      }
       
       // Create the prompt template
-      const promptTemplate = ChatPromptTemplate.fromTemplate(`
-You are controlling a factory distributing station with a ROTATING ARM and a STACKED MAGAZINE.
+      const promptTemplate = `
+You are controlling a factory distributing station with TWO ROTATING ARMS and TWO PUSHERS.
 
-Available Skills:
-- move_to_left_skill: Moves the arm to the left (toward magazine)
-- move_to_right_skill: Moves the arm to the right
-- pick_workpiece_skill: Picks the workpiece (must be pushed first and arm must be in left position)
-- place_workpiece_skill: Places the workpiece (arm must be in right position)
-- push_workpiece_skill: Pushes a workpiece from magazine (magazine must have workpieces)
-- load_magazine_skill: Loads 6 workpieces into the magazine
+Physical configuration:
 
-Operating Rules:
-1. The arm must be in the left position to pick a workpiece
-2. The arm must be in the right position to place a workpiece
-3. A workpiece must be pushed from the magazine before it can be picked
-4. The magazine can hold a maximum of 6 workpieces at a time
-5. The arm can only hold one workpiece at a time
+- magazine is on the left side of the station
+- pusher 1 and pusher 2 are below the magazine so workpiece can be pushed from the magazine to the rotating arms left side.
+- Rotating Arm 1 and rotating arm 2 is situated on the right side of the magazine both can pick the workpiece from its left side and place it on the right side.
+
+
+Available Skills with their Cost Model:
+- arm1_move_to_left_skill:  
+    rotating arm 1 moves to the left side of the magazine
+    Energy: 2, Time: 1.5, Wear: 1
+- arm1_move_to_right_skill: 
+    rotating arm 1 moves to the right side of it.
+    Energy: 2, Time: 1.5, Wear: 1
+- arm1_pick_workpiece_skill: 
+    rotating arm 1 picks the workpiece from the left side of the magazine
+    Energy: 3, Time: 1.5, Wear: 1.5
+- arm1_place_workpiece_skill: 
+    rotating arm 1 places the workpiece on the right side of it.
+    Energy: 3, Time: 1.5, Wear: 1.5
+
+- arm2_move_to_left_skill: 
+    rotating arm 2 moves to the left side of the magazine
+    Energy: 1, Time: 2, Wear: 0.5
+- arm2_move_to_right_skill: 
+    rotating arm 2 moves to the right side of the magazine
+    Energy: 1, Time: 2, Wear: 0.5
+- arm2_pick_workpiece_skill: 
+    rotating arm 2 picks the workpiece from the left side of the magazine
+    Energy: 2, Time: 2.5, Wear: 1
+- arm2_place_workpiece_skill: 
+    rotating arm 2 places the workpiece on the right side of it.
+    Energy: 2, Time: 2.5, Wear: 1
+
+- pusher1_push_slow_workpiece_skill: 
+    pusher 1 pushes the workpiece from  the magazine end to the rotating arms end
+    Energy: 1, Time: 3, Wear: 0.5 (automatically retracts after pushing)
+- pusher2_push_fast_workpiece_skill: 
+    pusher 2 pushes the workpiece from the magazine end to the rotating arms end
+    Energy: 2, Time: 2, Wear: 1 (automatically retracts after pushing)
+
+- load_magazine_skill: 
+    load the workpiece into the magazine
+    Energy: 2, Time: 2, Wear: 0.5
 
 Current State of the System:
 ${currentSystemState}
 
-Based on the following user request, create a plan of skills to execute:
-"${query}"
+Operating Rules:
+1. Arms can only pick workpiece whenever the workpiece is pushed and arm is in the left position
+2. Arms can only place workpiece when  arm is holding workpiece and arm is in the right position
+3. The magazine can hold a maximum of 6 workpieces at a time
+5. Each arm can only hold one workpiece at a time
+6. Only one workpiece can be pushed from the magazine at a time
+8. if there are no workpieces in the magazine, then load_magazine_skill for loading workpieces.
+9. if there is a workpiece is pushed then pusher no need to push it again.
+10. if arm holding workpiece then it can place workpiece if its in the right position.
 
-You MUST respond with a JSON object containing a "plan" (an array of skills to execute in order) and an "explanation" for why you chose this plan.
-Make sure your plan follows the operating rules and accounts for the current state of the system.
-`);
+According to the current state of the system and operating rules, 
+Based on the following user request: "${query}" create an efficient plan of skills to execute:
 
-      // Create the model with structured output
+You MUST respond with a JSON object containing:
+1. "plan" (an array of skills to execute in order)
+2. "explanation" for why you chose this plan
+3. "totalEnergy" - CALCULATE and provide the numeric sum of energy costs for all skills in the plan (e.g., 12, not "2 + 3 + 7")
+4. "totalTime" - CALCULATE and provide the numeric sum of time costs for all skills in the plan (e.g., 8.5, not "1.5 + 2 + 5")
+5. "totalWear" - CALCULATE and provide the numeric sum of wear costs for all skills in the plan (e.g., 4.5, not "1 + 0.5 + 3")
+
+Make sure your plan follows the operating rules and accounts for the current state of the system.`;
+
+      // Create the model
       const model = new ChatOpenAI({
-        modelName: modelName as ModelName,
+        modelName: modelName as any,
         temperature: 0,
         openAIApiKey: process.env.NEXT_PUBLIC_OPENAI_API_KEY
-      }).withStructuredOutput(planningAgentOutputSchema);
-
-      // Create the inference chain
-      const chain = promptTemplate.pipe(model);
-      
-      // Generate the plan but don't execute it
-      const output = await chain.invoke({ query: query });
-      console.log('[API Route] Planning Agent API: Generated plan:', output.plan);
-      
-      return NextResponse.json({
-        success: true,
-        plan: output.plan,
-        explanation: output.explanation || "Unable to determine explanation",
-        modelName
       });
+
+      console.log('[API Route] Prompt:', promptTemplate);
+
+      // Generate the plan
+      const response = await model.invoke([
+        ["human", promptTemplate]
+      ]);
+
+      // Parse the plan from the model's response
+      try {
+        const contentText = response.content.toString();
+        
+        // Extract JSON content more robustly
+        let jsonContent = contentText;
+        
+        // Try to extract JSON from markdown code blocks first
+        const jsonMatch = contentText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (jsonMatch && jsonMatch[1]) {
+          jsonContent = jsonMatch[1].trim();
+        } 
+        // If no code blocks, look for JSON-like structures
+        else {
+          const possibleJson = contentText.match(/(\{[\s\S]*\})/);
+          if (possibleJson && possibleJson[1]) {
+            jsonContent = possibleJson[1].trim();
+          }
+        }
+        
+        // Sanitize the JSON content to fix common issues
+        // Remove trailing commas in arrays or objects which are invalid JSON
+        jsonContent = jsonContent.replace(/,(\s*[\]}])/g, '$1');
+        
+        // Fix expressions in totalEnergy, totalTime, and totalWear
+        jsonContent = jsonContent.replace(/"totalEnergy"\s*:\s*([^"{}[\],]+),/g, (match, expr) => {
+          try {
+            // Safely evaluate the mathematical expression
+            const result = Function('return ' + expr)();
+            return `"totalEnergy": ${result},`;
+          } catch (e) {
+            console.error('[API Route] Error evaluating totalEnergy expression:', expr);
+            return `"totalEnergy": 0,`;
+          }
+        });
+        
+        jsonContent = jsonContent.replace(/"totalTime"\s*:\s*([^"{}[\],]+),/g, (match, expr) => {
+          try {
+            // Safely evaluate the mathematical expression
+            const result = Function('return ' + expr)();
+            return `"totalTime": ${result},`;
+          } catch (e) {
+            console.error('[API Route] Error evaluating totalTime expression:', expr);
+            return `"totalTime": 0,`;
+          }
+        });
+        
+        jsonContent = jsonContent.replace(/"totalWear"\s*:\s*([^"{}[\],]+)([,}])/g, (match, expr, ending) => {
+          try {
+            // Safely evaluate the mathematical expression
+            const result = Function('return ' + expr)();
+            return `"totalWear": ${result}${ending}`;
+          } catch (e) {
+            console.error('[API Route] Error evaluating totalWear expression:', expr);
+            return `"totalWear": 0${ending}`;
+          }
+        });
+        
+        // Try to parse the sanitized JSON
+        let parsedOutput;
+        try {
+          parsedOutput = JSON.parse(jsonContent);
+        } catch (parseError) {
+          console.error('[API Route] Initial JSON parse error:', parseError);
+          console.error('[API Route] Problematic JSON:', jsonContent);
+          
+          // If parsing fails, try to create a simple valid structure with default values
+          parsedOutput = {
+            plan: [],
+            explanation: "Failed to parse the plan. Please try again with a simpler request.",
+            totalEnergy: 0,
+            totalTime: 0, 
+            totalWear: 0
+          };
+        }
+        
+        console.log('[API Route] Parsed plan:', parsedOutput);
+        
+        // Validate the parsed output against the schema
+        try {
+          const validatedOutput = planningAgentOutputSchema.parse(parsedOutput);
+          
+          return NextResponse.json({
+            success: true,
+            plan: validatedOutput.plan,
+            explanation: validatedOutput.explanation,
+            modelName: modelName,
+            totalEnergy: validatedOutput.totalEnergy,
+            totalTime: validatedOutput.totalTime,
+            totalWear: validatedOutput.totalWear
+          });
+        } catch (validationError) {
+          console.error('[API Route] Validation error:', validationError);
+          
+          // Return a fallback plan with explicit error
+          return NextResponse.json({
+            success: false,
+            error: `Planning failed: ${validationError instanceof Error ? validationError.message : String(validationError)}`,
+            explanation: "The planning agent was unable to create a valid plan. Try simplifying your request."
+          }, { status: 400 });
+        }
+      } catch (parsingError) {
+        console.error('[API Route] Parsing error:', parsingError);
+        
+        return NextResponse.json({
+          success: false, 
+          error: `Parsing error: ${parsingError instanceof Error ? parsingError.message : String(parsingError)}`,
+          explanation: "There was an error processing the AI response. Please try again with a different wording."
+        }, { status: 400 });
+      }
     } catch (error: any) {
       console.error('[API Route] Planning Agent API: Error generating plan:', error);
       

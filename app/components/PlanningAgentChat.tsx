@@ -27,11 +27,14 @@ interface PlanResult {
   modelName: ModelName;
   userQuery: string;
   initialSystemState?: string;
+  totalEnergy?: number;
+  totalTime?: number;
+  totalWear?: number;
 }
 
 const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
   executeSkill,
-  getCurrentSystemState = () => "System state not available"
+  getCurrentSystemState = () => "System state not available",
 }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -158,6 +161,20 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
     e.preventDefault();
     if (!input.trim() || isProcessing) return;
 
+    // First, refresh the server state by fetching the current state
+    // We no longer need to reset state, just read it
+    try {
+      // We'll just get the current state without modifying it
+      const stateResponse = await fetch('/api/simulation-state', {
+        method: 'GET'
+      });
+      if (stateResponse.ok) {
+        console.log('Fetched current server state before planning');
+      }
+    } catch (error) {
+      console.error('Error fetching server state:', error);
+    }
+
     // Capture the initial system state before execution
     const initialSystemState = getCurrentSystemState();
     
@@ -181,7 +198,8 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
         },
         body: JSON.stringify({ 
           query: input,
-          modelName: selectedModel
+          modelName: selectedModel,
+          systemState: initialSystemState
         }),
       });
       
@@ -202,11 +220,22 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
           explanation: result.explanation,
           modelName: result.modelName,
           userQuery: input,
-          initialSystemState: initialSystemState
+          initialSystemState: initialSystemState,
+          totalEnergy: result.totalEnergy,
+          totalTime: result.totalTime,
+          totalWear: result.totalWear
         });
         
         // Show the explanation
         const explanationId = addMessage(`PLAN: ${result.explanation}`, 'agent');
+        
+        // Show cost metrics if available
+        if (result.totalEnergy !== undefined && result.totalTime !== undefined && result.totalWear !== undefined) {
+          addMessage(`📊 COST METRICS:
+Energy: ${result.totalEnergy.toFixed(1)} units
+Time: ${result.totalTime.toFixed(1)} seconds
+Wear: ${result.totalWear.toFixed(1)} units`, 'action');
+        }
         
         // Show the sequence of actions
         addMessage(`🔄 PLAN: ${result.plan.join(' → ')}`, 'action');
@@ -234,7 +263,8 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
         throw new Error(result.error || 'Failed to process request');
       }
     } catch (error: any) {
-      addMessage(`❌ ERROR: ${error.message || 'Unknown error occurred'}`, 'agent');
+      console.error('Error:', error);
+      addMessage(`❌ Error: ${error.message || 'Unknown error'}`, 'agent');
     } finally {
       setIsProcessing(false);
     }
@@ -248,52 +278,60 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
           <span>Planning Agent Assistant</span>
         </div>
         <div className={styles.statsContainer}>
-          <div className={styles.statItem}>
+          <div className={styles.stat}>
             <span className={styles.statIcon}>👍</span>
-            <span>{feedbackStats.thumbsUp}</span>
+            <span className={styles.statValue}>{feedbackStats.thumbsUp}</span>
           </div>
-          <div className={styles.statItem}>
+          <div className={styles.stat}>
             <span className={styles.statIcon}>👎</span>
-            <span>{feedbackStats.thumbsDown}</span>
+            <span className={styles.statValue}>{feedbackStats.thumbsDown}</span>
           </div>
         </div>
       </div>
       
-      <div className={styles.modelSelector}>
-        <label htmlFor="model-select">Model:</label>
-        <select 
-          id="model-select" 
-          value={selectedModel} 
-          onChange={(e) => setSelectedModel(e.target.value as ModelName)}
-          disabled={isProcessing}
-          className={styles.modelSelect}
-        >
-          {Object.entries(AVAILABLE_MODELS).map(([value, label]) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
+      <div className={styles.controlsRow}>
+        <div className={styles.modelSelector}>
+          <label htmlFor="model-select">Model:</label>
+          <select 
+            id="model-select" 
+            value={selectedModel} 
+            onChange={(e) => setSelectedModel(e.target.value as ModelName)}
+            disabled={isProcessing}
+            className={styles.modelSelect}
+          >
+            {Object.entries(AVAILABLE_MODELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </div>
       </div>
       
       <div className={styles.messagesContainer}>
-        {messages.map(message => (
-          <div key={message.id} className={styles.messageWithFeedback}>
-            <div className={`${styles.message} ${styles[message.type]}`}>
-              {message.content}
+        {messages.map((message) => (
+          <div 
+            key={message.id}
+            className={`${styles.message} ${styles[message.type]}`}
+          >
+            <div className={styles.messageContent}>
+              {message.content.split('\n').map((line, i) => (
+                <React.Fragment key={i}>
+                  {line}
+                  {i < message.content.split('\n').length - 1 && <br />}
+                </React.Fragment>
+              ))}
             </div>
             
-            {/* Only show feedback options for agent messages after plan execution */}
-            {message.type === 'agent' && message.content.startsWith('PLAN:') && lastPlanResult && (
-              <div className={styles.feedbackContainer}>
-                <span className={styles.feedbackText}>Was this helpful?</span>
+            {message.type === 'agent' && (
+              <div className={styles.messageActions}>
                 <button 
-                  className={`${styles.feedbackButton} ${styles.thumbsUp} ${message.feedback === 'thumbsUp' ? styles.selected : ''}`}
+                  className={`${styles.feedbackButton} ${message.feedback === 'thumbsUp' ? styles.active : ''}`} 
                   onClick={() => handleFeedback(message.id, 'thumbsUp')}
                   aria-label="Thumbs up"
                 >
                   👍
                 </button>
                 <button 
-                  className={`${styles.feedbackButton} ${styles.thumbsDown} ${message.feedback === 'thumbsDown' ? styles.selected : ''}`}
+                  className={`${styles.feedbackButton} ${message.feedback === 'thumbsDown' ? styles.active : ''}`} 
                   onClick={() => handleFeedback(message.id, 'thumbsDown')}
                   aria-label="Thumbs down"
                 >

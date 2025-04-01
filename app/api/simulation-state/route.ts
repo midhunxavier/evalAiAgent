@@ -30,8 +30,13 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
     
+    console.log('[API Route] Updating simulation state:', state);
+    
     // Update the simulation state
     Object.assign(simulationState, state);
+    
+    // Log the updated state
+    console.log('[API Route] Updated simulation state:', simulationState);
     
     return NextResponse.json({
       success: true,

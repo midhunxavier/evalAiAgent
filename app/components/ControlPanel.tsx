@@ -15,6 +15,7 @@ export default function ControlPanel({
 }: ControlPanelProps) {
   const [isExecuting, setIsExecuting] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<string | null>(null);
+  const [selectedArm, setSelectedArm] = useState<'arm1' | 'arm2'>('arm1');
 
   // Handler for executing skills with UI feedback
   const handleExecuteSkill = async (skillName: string) => {
@@ -35,12 +36,23 @@ export default function ControlPanel({
     }
   };
 
-  // Handler functions for each skill
-  const handleMoveLeft = () => handleExecuteSkill('move_to_left_skill');
-  const handleMoveRight = () => handleExecuteSkill('move_to_right_skill');
-  const handlePick = () => handleExecuteSkill('pick_workpiece_skill');
-  const handlePlace = () => handleExecuteSkill('place_workpiece_skill');
-  const handlePush = () => handleExecuteSkill('push_workpiece_skill');
+  // Handler functions for arm 1 skills
+  const handleArm1MoveLeft = () => handleExecuteSkill('arm1_move_to_left_skill');
+  const handleArm1MoveRight = () => handleExecuteSkill('arm1_move_to_right_skill');
+  const handleArm1Pick = () => handleExecuteSkill('arm1_pick_workpiece_skill');
+  const handleArm1Place = () => handleExecuteSkill('arm1_place_workpiece_skill');
+  
+  // Handler functions for arm 2 skills
+  const handleArm2MoveLeft = () => handleExecuteSkill('arm2_move_to_left_skill');
+  const handleArm2MoveRight = () => handleExecuteSkill('arm2_move_to_right_skill');
+  const handleArm2Pick = () => handleExecuteSkill('arm2_pick_workpiece_skill');
+  const handleArm2Place = () => handleExecuteSkill('arm2_place_workpiece_skill');
+  
+  // Handler functions for pusher skills
+  const handlePusher1Push = () => handleExecuteSkill('pusher1_push_slow_workpiece_skill');
+  const handlePusher2Push = () => handleExecuteSkill('pusher2_push_fast_workpiece_skill');
+  
+  // Handler for common skills
   const handleLoadMagazine = () => handleExecuteSkill('load_magazine_skill');
 
   return (
@@ -53,38 +65,118 @@ export default function ControlPanel({
         </div>
       )}
       
-      <div className={styles.controlGroup}>
-        <h3>Rotating Arm Control</h3>
-        <div className={styles.buttonRow}>
-          <button 
-            onClick={handleMoveLeft}
-            className={styles.controlButton}
-          >
-            {isExecuting === 'move_to_left_skill' ? 'Moving...' : 'Move Left'}
-          </button>
-          <button 
-            onClick={handleMoveRight}
-            className={styles.controlButton}
-          >
-            {isExecuting === 'move_to_right_skill' ? 'Moving...' : 'Move Right'}
-          </button>
-        </div>
+      {/* Arm selector tabs */}
+      <div className={styles.armSelector}>
+        <button 
+          className={`${styles.armSelectorButton} ${selectedArm === 'arm1' ? styles.active : ''}`}
+          onClick={() => setSelectedArm('arm1')}
+        >
+          Arm 1 (Fast)
+        </button>
+        <button 
+          className={`${styles.armSelectorButton} ${selectedArm === 'arm2' ? styles.active : ''}`}
+          onClick={() => setSelectedArm('arm2')}
+        >
+          Arm 2 (Efficient)
+        </button>
       </div>
+
+      {/* Arm 1 Controls */}
+      {selectedArm === 'arm1' && (
+        <>
+          <div className={styles.controlGroup}>
+            <h3>Arm 1 Control</h3>
+            <div className={styles.buttonRow}>
+              <button 
+                onClick={handleArm1MoveLeft}
+                className={styles.controlButton}
+              >
+                {isExecuting === 'arm1_move_to_left_skill' ? 'Moving...' : 'Move Left'}
+              </button>
+              <button 
+                onClick={handleArm1MoveRight}
+                className={styles.controlButton}
+              >
+                {isExecuting === 'arm1_move_to_right_skill' ? 'Moving...' : 'Move Right'}
+              </button>
+            </div>
+          </div>
+          
+          <div className={styles.controlGroup}>
+            <h3>Arm 1 Workpiece Control</h3>
+            <div className={styles.buttonRow}>
+              <button 
+                onClick={handleArm1Pick}
+                className={styles.controlButton}
+              >
+                {isExecuting === 'arm1_pick_workpiece_skill' ? 'Picking...' : 'Pick Workpiece'}
+              </button>
+              <button 
+                onClick={handleArm1Place}
+                className={styles.controlButton}
+              >
+                {isExecuting === 'arm1_place_workpiece_skill' ? 'Placing...' : 'Place Workpiece'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+      
+      {/* Arm 2 Controls */}
+      {selectedArm === 'arm2' && (
+        <>
+          <div className={styles.controlGroup}>
+            <h3>Arm 2 Control</h3>
+            <div className={styles.buttonRow}>
+              <button 
+                onClick={handleArm2MoveLeft}
+                className={styles.controlButton}
+              >
+                {isExecuting === 'arm2_move_to_left_skill' ? 'Moving...' : 'Move Left'}
+              </button>
+              <button 
+                onClick={handleArm2MoveRight}
+                className={styles.controlButton}
+              >
+                {isExecuting === 'arm2_move_to_right_skill' ? 'Moving...' : 'Move Right'}
+              </button>
+            </div>
+          </div>
+          
+          <div className={styles.controlGroup}>
+            <h3>Arm 2 Workpiece Control</h3>
+            <div className={styles.buttonRow}>
+              <button 
+                onClick={handleArm2Pick}
+                className={styles.controlButton}
+              >
+                {isExecuting === 'arm2_pick_workpiece_skill' ? 'Picking...' : 'Pick Workpiece'}
+              </button>
+              <button 
+                onClick={handleArm2Place}
+                className={styles.controlButton}
+              >
+                {isExecuting === 'arm2_place_workpiece_skill' ? 'Placing...' : 'Place Workpiece'}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
       
       <div className={styles.controlGroup}>
-        <h3>Workpiece Control</h3>
+        <h3>Pusher Control</h3>
         <div className={styles.buttonRow}>
           <button 
-            onClick={handlePick}
+            onClick={handlePusher1Push}
             className={styles.controlButton}
           >
-            {isExecuting === 'pick_workpiece_skill' ? 'Picking...' : 'Pick Workpiece'}
+            {isExecuting === 'pusher1_push_slow_workpiece_skill' ? 'Pushing...' : 'Slow Push'}
           </button>
           <button 
-            onClick={handlePlace}
+            onClick={handlePusher2Push}
             className={styles.controlButton}
           >
-            {isExecuting === 'place_workpiece_skill' ? 'Placing...' : 'Place Workpiece'}
+            {isExecuting === 'pusher2_push_fast_workpiece_skill' ? 'Pushing...' : 'Fast Push'}
           </button>
         </div>
       </div>
@@ -92,12 +184,6 @@ export default function ControlPanel({
       <div className={styles.controlGroup}>
         <h3>Magazine Control</h3>
         <div className={styles.buttonRow}>
-          <button 
-            onClick={handlePush}
-            className={styles.controlButton}
-          >
-            {isExecuting === 'push_workpiece_skill' ? 'Pushing...' : 'Push Workpiece'}
-          </button>
           <button 
             onClick={handleLoadMagazine}
             className={styles.controlButton}

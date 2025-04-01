@@ -5,11 +5,16 @@ const API_BASE_URL = typeof window !== 'undefined' ? `${window.location.origin}/
 
 // Define basic skills types
 export type SkillName = 
-  | 'move_to_left_skill'
-  | 'move_to_right_skill'
-  | 'pick_workpiece_skill'
-  | 'place_workpiece_skill'
-  | 'push_workpiece_skill'
+  | 'arm1_move_to_left_skill'
+  | 'arm1_move_to_right_skill'
+  | 'arm1_pick_workpiece_skill'
+  | 'arm1_place_workpiece_skill'
+  | 'arm2_move_to_left_skill'
+  | 'arm2_move_to_right_skill'
+  | 'arm2_pick_workpiece_skill'
+  | 'arm2_place_workpiece_skill'
+  | 'pusher1_push_slow_workpiece_skill'
+  | 'pusher2_push_fast_workpiece_skill'
   | 'load_magazine_skill'
 
 export type ApiResponse = {

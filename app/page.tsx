@@ -1,19 +1,23 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Simulation from './components/Simulation'
 import ControlPanel from './components/ControlPanel'
 import SimulationLog from './components/SimulationLog'
 import SimpleAgentChat from './components/SimpleAgentChat'
 import PlanningAgentChat from './components/PlanningAgentChat'
-import { executeApi } from './services/api'
+import { executeApi } from '@/app/services/api'
 import styles from './page.module.css'
 
 export interface SimulationStateType {
   rotatingArmPosition: 'left' | 'right'
+  rotatingArm2Position: 'left' | 'right'
   isHoldingWorkpiece: boolean
+  isArm2HoldingWorkpiece: boolean
   magazineWorkpieceCount: number
   workpiecePushed: boolean
+  pusher1Active: boolean
+  pusher2Active: boolean
   status: string
   logs: string[]
 }
@@ -21,14 +25,36 @@ export interface SimulationStateType {
 export default function Home() {
   const [simulationState, setSimulationState] = useState<SimulationStateType>({
     rotatingArmPosition: 'right',
+    rotatingArm2Position: 'right',
     isHoldingWorkpiece: false,
+    isArm2HoldingWorkpiece: false,
     magazineWorkpieceCount: 0,
     workpiecePushed: false,
+    pusher1Active: false,
+    pusher2Active: false,
     status: 'System ready. Load the magazine to begin.',
     logs: []
   })
 
-  const [showAgent, setShowAgent] = useState<'none' | 'planning'>('none')
+  // Load saved state from localStorage on initial render
+  useEffect(() => {
+    const savedState = localStorage.getItem('simulationState');
+    if (savedState) {
+      try {
+        const parsedState = JSON.parse(savedState);
+        setSimulationState(prevState => ({
+          ...prevState,
+          ...parsedState,
+          logs: prevState.logs // Keep existing logs
+        }));
+        console.log('Loaded saved state from localStorage');
+      } catch (e) {
+        console.error('Error parsing saved state:', e);
+      }
+    }
+  }, []);
+
+  const [showAgent, setShowAgent] = useState<'none' | 'planning'>('planning')
 
   const addLog = useCallback((message: string) => {
     setSimulationState(prevState => ({
@@ -43,6 +69,12 @@ export default function Home() {
         ...prevState,
         ...newState
       }
+
+      // Save state to localStorage (excluding logs to keep it smaller)
+      const stateToSave = { ...updatedState };
+      const stateForStorage = { ...stateToSave };
+      delete (stateForStorage as any).logs;
+      localStorage.setItem('simulationState', JSON.stringify(stateForStorage));
 
       // Log state changes
       if (newState.rotatingArmPosition && newState.rotatingArmPosition !== prevState.rotatingArmPosition) {
@@ -93,9 +125,13 @@ export default function Home() {
         // Map server state to client state
         updateSimulationState({
           rotatingArmPosition: result.simulationState.rotatingArmPosition,
+          rotatingArm2Position: result.simulationState.rotatingArm2Position,
           isHoldingWorkpiece: result.simulationState.isHoldingWorkpiece,
+          isArm2HoldingWorkpiece: result.simulationState.isArm2HoldingWorkpiece,
           magazineWorkpieceCount: result.simulationState.magazineWorkpieceCount,
           workpiecePushed: result.simulationState.workpiecePushed,
+          pusher1Active: result.simulationState.pusher1Active,
+          pusher2Active: result.simulationState.pusher2Active,
           status: 'idle'
         })
         
@@ -106,17 +142,18 @@ export default function Home() {
       if (result.success) {
         // Update client-side state based on the skill
         switch (normalizedSkillName) {
-          case 'move_to_left_skill':
+          // Arm 1 skills
+          case 'arm1_move_to_left_skill':
             updateSimulationState({ rotatingArmPosition: 'left' })
             break
           
-          case 'move_to_right_skill':
+          case 'arm1_move_to_right_skill':
             updateSimulationState({ rotatingArmPosition: 'right' })
             break
           
-          case 'pick_workpiece_skill':
+          case 'arm1_pick_workpiece_skill':
             if (simulationState.rotatingArmPosition !== 'left') {
-              return 'Error: Arm must be in left position to pick'
+              return 'Error: Arm 1 must be in left position to pick'
             }
             if (!simulationState.workpiecePushed) {
               return 'Error: No workpiece available to pick'
@@ -127,29 +164,93 @@ export default function Home() {
             })
             break
           
-          case 'place_workpiece_skill':
+          case 'arm1_place_workpiece_skill':
             if (simulationState.rotatingArmPosition !== 'right') {
-              return 'Error: Arm must be in right position to place'
+              return 'Error: Arm 1 must be in right position to place'
             }
             if (!simulationState.isHoldingWorkpiece) {
-              return 'Error: No workpiece is being held'
+              return 'Error: Arm 1 is not holding a workpiece'
             }
             updateSimulationState({ isHoldingWorkpiece: false })
             break
+            
+          // Arm 2 skills
+          case 'arm2_move_to_left_skill':
+            updateSimulationState({ rotatingArm2Position: 'left' })
+            break
           
-          case 'push_workpiece_skill':
+          case 'arm2_move_to_right_skill':
+            updateSimulationState({ rotatingArm2Position: 'right' })
+            break
+          
+          case 'arm2_pick_workpiece_skill':
+            if (simulationState.rotatingArm2Position !== 'left') {
+              return 'Error: Arm 2 must be in left position to pick'
+            }
+            if (!simulationState.workpiecePushed) {
+              return 'Error: No workpiece available for Arm 2 to pick'
+            }
+            updateSimulationState({ 
+              isArm2HoldingWorkpiece: true, 
+              workpiecePushed: false 
+            })
+            break
+          
+          case 'arm2_place_workpiece_skill':
+            if (simulationState.rotatingArm2Position !== 'right') {
+              return 'Error: Arm 2 must be in right position to place'
+            }
+            if (!simulationState.isArm2HoldingWorkpiece) {
+              return 'Error: Arm 2 is not holding a workpiece'
+            }
+            updateSimulationState({ isArm2HoldingWorkpiece: false })
+            break
+            
+          // Pusher skills
+          case 'pusher1_push_slow_workpiece_skill':
             if (simulationState.magazineWorkpieceCount <= 0) {
               return 'Error: Magazine is empty'
             }
             if (simulationState.workpiecePushed) {
               return 'Error: Workpiece already pushed'
             }
+            
+            // Activate pusher and update simulation state
             updateSimulationState({ 
               workpiecePushed: true,
+              pusher1Active: true,
               magazineWorkpieceCount: simulationState.magazineWorkpieceCount - 1
-            })
-            break
-          
+            });
+            
+            // Ensure pusher retracts after pushing (after animation delay)
+            setTimeout(() => {
+              updateSimulationState({ pusher1Active: false });
+              console.log("Pusher 1 retracted");
+            }, 1000); // Retract after 1 second
+            break;
+            
+          case 'pusher2_push_fast_workpiece_skill':
+            if (simulationState.magazineWorkpieceCount <= 0) {
+              return 'Error: Magazine is empty'
+            }
+            if (simulationState.workpiecePushed) {
+              return 'Error: Workpiece already pushed'
+            }
+            
+            // Activate pusher and update simulation state
+            updateSimulationState({ 
+              workpiecePushed: true,
+              pusher2Active: true,
+              magazineWorkpieceCount: simulationState.magazineWorkpieceCount - 1
+            });
+            
+            // Ensure pusher retracts after pushing (after animation delay)
+            setTimeout(() => {
+              updateSimulationState({ pusher2Active: false });
+              console.log("Pusher 2 retracted");
+            }, 800); // Retract faster (800ms) for the fast pusher
+            break;
+            
           case 'load_magazine_skill':
             updateSimulationState({ magazineWorkpieceCount: 6 })
             break
@@ -170,46 +271,34 @@ export default function Home() {
   // Function to format system state as a string
   const getCurrentSystemState = useCallback(() => {
     return `
-Rotating Arm Position: ${simulationState.rotatingArmPosition}
-Holding Workpiece: ${simulationState.isHoldingWorkpiece ? 'Yes' : 'No'}
+Rotating Arm 1 Position: ${simulationState.rotatingArmPosition}
+Arm 1 Holding Workpiece: ${simulationState.isHoldingWorkpiece ? 'Yes' : 'No'}
+Rotating Arm 2 Position: ${simulationState.rotatingArm2Position}
+Arm 2 Holding Workpiece: ${simulationState.isArm2HoldingWorkpiece ? 'Yes' : 'No'}
 Magazine Workpiece Count: ${simulationState.magazineWorkpieceCount}
 Workpiece Pushed: ${simulationState.workpiecePushed ? 'Yes' : 'No'}
+Pusher 1 Active: ${simulationState.pusher1Active ? 'Yes' : 'No'}
+Pusher 2 Active: ${simulationState.pusher2Active ? 'Yes' : 'No'}
 Status: ${simulationState.status}
     `.trim();
   }, [simulationState]);
 
-  const renderAgentSelector = () => (
-    <div className={styles.agentSelector}>
-      <button 
-        className={`${styles.agentSelectorButton} ${showAgent === 'none' ? styles.active : styles.inactive}`}
-        onClick={() => setShowAgent('none')}
-      >
-        Manual Control
-      </button>
-      <button 
-        className={`${styles.agentSelectorButton} ${showAgent === 'planning' ? styles.active : styles.inactive}`}
-        onClick={() => setShowAgent('planning')}
-      >
-        Planning Agent
-      </button>
-    </div>
-  )
+  const renderAgentSelector = () => <></>
 
   return (
     <main className={styles.main}>
       <h1 className={styles.title}>
-        AI Agent for  Distributing Station 
+        AI Agent for Distributing Station 
       </h1>
       
       <div className={styles.description}>
         <p>
-          This simulation represents a factory distributing station with a robotic arm and magazine storage system.
+          This simulation represents a factory distributing station with two robotic arms and magazine storage system.
           The station transfers workpieces from a magazine to a delivery position through a series of automated steps.
-          The arm can move between left (magazine) and right (delivery) positions, pick up and place workpieces.
+          Each arm can move between left (magazine) and right (delivery) positions, pick up and place workpieces.
         </p>
         <p>
-          Use the Planning Agent to control the system with natural language commands or
-          manually control each operation with the control panel.
+          Use the Planning Agent to control the system with natural language commands.
         </p>
       </div>
       
@@ -226,17 +315,10 @@ Status: ${simulationState.status}
         
         <div className={styles.agentContainer}>
           <div className={styles.controlsContainer}>
-            {showAgent === 'planning' ? (
-              <PlanningAgentChat 
-                executeSkill={executeSkill} 
-                getCurrentSystemState={getCurrentSystemState}
-              />
-            ) : (
-              <ControlPanel 
-                simulationState={simulationState} 
-                executeSkill={executeSkill}
-              />
-            )}
+            <PlanningAgentChat 
+              executeSkill={executeSkill} 
+              getCurrentSystemState={getCurrentSystemState}
+            />
             <SimulationLog logs={simulationState.logs} />
           </div>
         </div>
