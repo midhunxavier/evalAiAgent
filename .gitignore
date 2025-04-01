@@ -32,5 +32,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts 
+
+# amplify
 .amplify
 amplify_outputs.json
+
+# cursor
+.cursor

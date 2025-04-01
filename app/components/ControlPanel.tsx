@@ -58,14 +58,12 @@ export default function ControlPanel({
         <div className={styles.buttonRow}>
           <button 
             onClick={handleMoveLeft}
-            disabled={isExecuting !== null || simulationState.rotatingArmPosition === 'left'}
             className={styles.controlButton}
           >
             {isExecuting === 'move_to_left_skill' ? 'Moving...' : 'Move Left'}
           </button>
           <button 
             onClick={handleMoveRight}
-            disabled={isExecuting !== null || simulationState.rotatingArmPosition === 'right'}
             className={styles.controlButton}
           >
             {isExecuting === 'move_to_right_skill' ? 'Moving...' : 'Move Right'}
@@ -78,19 +76,12 @@ export default function ControlPanel({
         <div className={styles.buttonRow}>
           <button 
             onClick={handlePick}
-            disabled={isExecuting !== null || 
-                    simulationState.rotatingArmPosition !== 'left' || 
-                    !simulationState.workpiecePushed || 
-                    simulationState.isHoldingWorkpiece}
             className={styles.controlButton}
           >
             {isExecuting === 'pick_workpiece_skill' ? 'Picking...' : 'Pick Workpiece'}
           </button>
           <button 
             onClick={handlePlace}
-            disabled={isExecuting !== null || 
-                    simulationState.rotatingArmPosition !== 'right' || 
-                    !simulationState.isHoldingWorkpiece}
             className={styles.controlButton}
           >
             {isExecuting === 'place_workpiece_skill' ? 'Placing...' : 'Place Workpiece'}
@@ -103,16 +94,12 @@ export default function ControlPanel({
         <div className={styles.buttonRow}>
           <button 
             onClick={handlePush}
-            disabled={isExecuting !== null || 
-                    simulationState.magazineWorkpieceCount <= 0 || 
-                    simulationState.workpiecePushed}
             className={styles.controlButton}
           >
             {isExecuting === 'push_workpiece_skill' ? 'Pushing...' : 'Push Workpiece'}
           </button>
           <button 
             onClick={handleLoadMagazine}
-            disabled={isExecuting !== null || simulationState.magazineWorkpieceCount === 6}
             className={styles.controlButton}
           >
             {isExecuting === 'load_magazine_skill' ? 'Loading...' : 'Load Magazine'}

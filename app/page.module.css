@@ -144,6 +144,12 @@
   background-color: #e3f2fd;
 }
 
+.agentSelectorButton.inactive {
+  color: #95a5a6;
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
 .syncButton {
   background-color: var(--secondary-color, #3498db);
   display: flex;

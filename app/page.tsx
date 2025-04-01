@@ -170,13 +170,13 @@ export default function Home() {
   const renderAgentSelector = () => (
     <div className={styles.agentSelector}>
       <button 
-        className={`${styles.agentSelectorButton} ${showAgent === 'none' ? styles.active : ''}`}
+        className={`${styles.agentSelectorButton} ${showAgent === 'none' ? styles.active : styles.inactive}`}
         onClick={() => setShowAgent('none')}
       >
         Manual Control
       </button>
       <button 
-        className={`${styles.agentSelectorButton} ${showAgent === 'planning' ? styles.active : ''}`}
+        className={`${styles.agentSelectorButton} ${showAgent === 'planning' ? styles.active : styles.inactive}`}
         onClick={() => setShowAgent('planning')}
       >
         Planning Agent

@@ -23,8 +23,8 @@ type PlanningAgentOutput = z.infer<typeof planningAgentOutputSchema>;
 
 // Available GPT models
 export const AVAILABLE_MODELS = {
+  "gpt-4o": "GPT-4o",
   "gpt-4o-mini": "GPT-4o Mini",
-  "gpt-3.5-turbo": "GPT-3.5 Turbo",
   "gpt-4": "GPT-4 Turbo"
 };
 
