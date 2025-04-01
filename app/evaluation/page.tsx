@@ -16,6 +16,7 @@ interface AgentEvaluation {
   isCorrect: boolean
   explanation?: string | null
   timestamp: string
+  systemState?: string
 }
 
 // Metric interface
@@ -145,7 +146,8 @@ export default function EvaluationDashboard() {
         item.actions.filter((a: any) => a !== null) : [],
       isCorrect: Boolean(item.isCorrect),
       explanation: item.explanation || null,
-      timestamp: item.timestamp || new Date().toISOString()
+      timestamp: item.timestamp || new Date().toISOString(),
+      systemState: item.systemState || null
     }))
     
     // Sort by timestamp
@@ -300,6 +302,7 @@ export default function EvaluationDashboard() {
                   <th>Query</th>
                   <th>Result</th>
                   <th>Actions</th>
+                  <th>Initial System State</th>
                 </tr>
               </thead>
               <tbody>
@@ -323,6 +326,16 @@ export default function EvaluationDashboard() {
                           </div>
                         )}
                       </details>
+                    </td>
+                    <td className={styles.stateCell}>
+                      {evaluation.systemState ? (
+                        <details>
+                          <summary>Show Initial State</summary>
+                          <div className={styles.stateDetails}>
+                            <pre>{evaluation.systemState}</pre>
+                          </div>
+                        </details>
+                      ) : 'N/A'}
                     </td>
                   </tr>
                 ))}

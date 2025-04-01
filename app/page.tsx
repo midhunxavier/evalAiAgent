@@ -167,6 +167,17 @@ export default function Home() {
     }
   }
 
+  // Function to format system state as a string
+  const getCurrentSystemState = useCallback(() => {
+    return `
+Rotating Arm Position: ${simulationState.rotatingArmPosition}
+Holding Workpiece: ${simulationState.isHoldingWorkpiece ? 'Yes' : 'No'}
+Magazine Workpiece Count: ${simulationState.magazineWorkpieceCount}
+Workpiece Pushed: ${simulationState.workpiecePushed ? 'Yes' : 'No'}
+Status: ${simulationState.status}
+    `.trim();
+  }, [simulationState]);
+
   const renderAgentSelector = () => (
     <div className={styles.agentSelector}>
       <button 
@@ -216,7 +227,10 @@ export default function Home() {
         <div className={styles.agentContainer}>
           <div className={styles.controlsContainer}>
             {showAgent === 'planning' ? (
-              <PlanningAgentChat executeSkill={executeSkill} />
+              <PlanningAgentChat 
+                executeSkill={executeSkill} 
+                getCurrentSystemState={getCurrentSystemState}
+              />
             ) : (
               <ControlPanel 
                 simulationState={simulationState} 

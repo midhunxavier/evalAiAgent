@@ -15,6 +15,7 @@ const schema = a.schema({
       userFeedback: a.string(),
       explanation: a.string(),
       timestamp: a.datetime().required(),
+      systemState: a.string(),
     })
     .authorization(allow => [allow.publicApiKey()])
 });

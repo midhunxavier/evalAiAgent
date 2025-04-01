@@ -13,6 +13,7 @@ interface Message {
 
 interface PlanningAgentChatProps {
   executeSkill: (skill: string) => Promise<string>;
+  getCurrentSystemState?: () => string;
 }
 
 interface FeedbackStats {
@@ -25,10 +26,12 @@ interface PlanResult {
   explanation: string;
   modelName: ModelName;
   userQuery: string;
+  initialSystemState?: string;
 }
 
 const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
-  executeSkill
+  executeSkill,
+  getCurrentSystemState = () => "System state not available"
 }) => {
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -110,7 +113,8 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
             modelName: lastPlanResult.modelName,
             query: lastPlanResult.userQuery,
             plan: lastPlanResult.plan,
-            explanation: lastPlanResult.explanation
+            explanation: lastPlanResult.explanation,
+            systemState: lastPlanResult.initialSystemState || "System state not captured"
           }),
         });
         
@@ -154,6 +158,9 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
     e.preventDefault();
     if (!input.trim() || isProcessing) return;
 
+    // Capture the initial system state before execution
+    const initialSystemState = getCurrentSystemState();
+    
     // Reset last plan result
     setLastPlanResult(null);
     
@@ -194,7 +201,8 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
           plan: result.plan,
           explanation: result.explanation,
           modelName: result.modelName,
-          userQuery: input
+          userQuery: input,
+          initialSystemState: initialSystemState
         });
         
         // Show the explanation
@@ -216,6 +224,12 @@ const PlanningAgentChat: React.FC<PlanningAgentChatProps> = ({
         }
         
         addMessage(`✅ Plan execution completed`, 'result');
+        
+        // For debugging, show the final system state after execution
+        const finalSystemState = getCurrentSystemState();
+        if (finalSystemState !== initialSystemState) {
+          addMessage(`System state changed from initial state to:\n${finalSystemState}`, 'result');
+        }
       } else {
         throw new Error(result.error || 'Failed to process request');
       }

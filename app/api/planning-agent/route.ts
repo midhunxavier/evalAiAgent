@@ -75,15 +75,26 @@ let evaluationStore: Array<{
   isCorrect: boolean;
   explanation: string;
   timestamp: string;
+  systemState: string; // Stores the initial system state before skill execution
 }> = [];
 
-// Save agent evaluation to the database
+/**
+ * Saves agent evaluation to the database or in-memory store
+ * @param modelName The model used for generating the plan
+ * @param userQuery The user's original query
+ * @param actions The sequence of actions in the plan
+ * @param isCorrect Whether the user marked the plan as correct
+ * @param explanation The explanation for the plan
+ * @param systemState The initial system state before any skills were executed
+ * @returns Object with success status, source, and ID
+ */
 async function saveEvaluation(
   modelName: ModelName, 
   userQuery: string, 
   actions: string[], 
   isCorrect: boolean,
-  explanation: string
+  explanation: string,
+  systemState: string // Initial system state before execution
 ) {
   try {
     const evalData = {
@@ -93,6 +104,7 @@ async function saveEvaluation(
       isCorrect,
       explanation,
       timestamp: new Date().toISOString(),
+      systemState,
     };
     
     if (client) {
@@ -128,6 +140,7 @@ async function saveEvaluation(
       isCorrect,
       explanation,
       timestamp: new Date().toISOString(),
+      systemState,
     };
     evaluationStore.push(fallbackData);
     console.log('[API Route] Saved evaluation to in-memory store, ID:', evalId);
@@ -194,7 +207,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
-    const { query, modelName = "gpt-4o-mini", saveFeedback, isCorrect } = data;
+    const { query, modelName = "gpt-4o-mini", saveFeedback, isCorrect, systemState } = data;
     
     console.log(`[API Route] Planning Agent API: Received request with query: "${query}", model: ${modelName}`);
     
@@ -208,12 +221,14 @@ export async function POST(request: NextRequest) {
     // Check if this is just saving feedback without generating a plan
     if (saveFeedback && query && typeof isCorrect === 'boolean' && data.plan) {
       try {
+        console.log(`[API Route] Saving feedback with initial system state`);
         const result = await saveEvaluation(
           modelName as ModelName, 
           query, 
           data.plan,
           isCorrect,
-          data.explanation || ""
+          data.explanation || "",
+          systemState || formatSystemState(simulationState)
         );
         
         if (result.success) {
