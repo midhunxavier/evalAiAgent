@@ -6,6 +6,7 @@ import ControlPanel from './components/ControlPanel'
 import SimulationLog from './components/SimulationLog'
 import SimpleAgentChat from './components/SimpleAgentChat'
 import PlanningAgentChat from './components/PlanningAgentChat'
+import SkillCostTable from './components/SkillCostTable'
 import { executeApi } from '@/app/services/api'
 import styles from './page.module.css'
 
@@ -311,6 +312,7 @@ Status: ${simulationState.status}
       <div className={styles.simulationContainer}>
         <div className={styles.simulationSection}>
           <Simulation simulationState={simulationState} />
+          <SkillCostTable />
         </div>
         
         <div className={styles.agentContainer}>
